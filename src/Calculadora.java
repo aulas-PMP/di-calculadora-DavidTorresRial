@@ -8,6 +8,7 @@ public class Calculadora extends JFrame {
     private double resultado = 0;
     private boolean nuevoNumero = true;
     private JLabel modoEntrada;
+    private String modo = "Ambos";  // Modo inicial
 
     public Calculadora(String alumno) {
         setTitle("Calculadora - " + alumno);
@@ -16,29 +17,8 @@ public class Calculadora extends JFrame {
         // Configuración inicial de la ventana
         ajustarPantallaNormal();
 
-        // Agregar KeyListener para permitir usar el teclado
-        addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                char tecla = e.getKeyChar();
-                if (Character.isDigit(tecla)) {
-                    ingresarNumero(String.valueOf(tecla));
-                } else if (tecla == '+') {
-                    setOperacion("+");
-                } else if (tecla == '-') {
-                    setOperacion("-");
-                } else if (tecla == '*') {
-                    setOperacion("*");
-                } else if (tecla == '/') {
-                    setOperacion("/");
-                } else if (tecla == '=') {
-                    calcularResultado();
-                } else if (tecla == KeyEvent.VK_BACK_SPACE) {
-                    reiniciar();
-                }
-            }
-        });
-        setFocusable(true);
+        // Configurar atajos de teclado para numpad y retroceso
+        configurarAtajosDeTeclado();
 
         // Configuración del Layout principal
         setLayout(new GridBagLayout());
@@ -72,13 +52,20 @@ public class Calculadora extends JFrame {
         add(panelPantallas, gbc);
 
         // Panel de botones numéricos
-        JPanel panelBotones = new JPanel(new GridLayout(4, 3, 5, 5));
+        JPanel panelBotones = new JPanel(new GridLayout(4, 4, 5, 5));
         panelBotones.setBackground(new Color(240, 240, 240));
         for (int i = 1; i <= 9; i++) {
             agregarBotonNumerico(panelBotones, String.valueOf(i));
         }
         agregarBotonNumerico(panelBotones, "0");
         agregarBotonNumerico(panelBotones, ",");
+
+        // Botón "Cambiar Modo" dentro del panel de botones
+        JButton botonModo = new JButton("Cambiar Modo");
+        botonModo.setBackground(new Color(255, 204, 153));
+        botonModo.setFont(new Font("Arial", Font.PLAIN, 14));
+        botonModo.addActionListener(e -> cambiarModo());
+        panelBotones.add(botonModo);
 
         gbc.gridx = 0;
         gbc.gridy = 1;
@@ -105,7 +92,7 @@ public class Calculadora extends JFrame {
         // Panel de modo de entrada
         JPanel panelModo = new JPanel();
         panelModo.setBackground(Color.DARK_GRAY);
-        modoEntrada = new JLabel("Modo: Libre");
+        modoEntrada = new JLabel("Modo: Ambos");
         modoEntrada.setFont(new Font("Arial", Font.ITALIC, 14));
         modoEntrada.setForeground(Color.WHITE);
         panelModo.add(modoEntrada);
@@ -124,12 +111,111 @@ public class Calculadora extends JFrame {
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         setSize((int) (screenSize.width * 0.5), 600);
         setLocationRelativeTo(null);
-        setResizable(true); // Permite redimensionar, pero el botón de maximizar debería estar disponible
+        setResizable(true);
     }
 
-    private void ajustarPantallaMaximizada() {
-        setExtendedState(JFrame.MAXIMIZED_BOTH); // Maximiza la ventana
-        setResizable(true); // Permite redimensionar cuando la ventana esté maximizada
+    private void configurarAtajosDeTeclado() {
+        InputMap inputMap = getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        ActionMap actionMap = getRootPane().getActionMap();
+
+        // Números del teclado numérico
+        for (int i = 0; i <= 9; i++) {
+            final int num = i;
+            inputMap.put(KeyStroke.getKeyStroke("NUMPAD" + i), "numpad" + i);
+            actionMap.put("numpad" + i, new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (modo.equals("Ambos") || modo.equals("Teclado")) {
+                        ingresarNumero(String.valueOf(num));
+                    }
+                }
+            });
+        }
+
+        // Punto decimal del teclado numérico
+        inputMap.put(KeyStroke.getKeyStroke("DECIMAL"), "decimal");
+        actionMap.put("decimal", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (modo.equals("Ambos") || modo.equals("Teclado")) {
+                    ingresarNumero(",");
+                }
+            }
+        });
+
+        // Retroceso vinculado a "C"
+        inputMap.put(KeyStroke.getKeyStroke("BACK_SPACE"), "borrarTodo");
+        actionMap.put("borrarTodo", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                reiniciar();
+            }
+        });
+
+        // Operaciones del teclado
+        inputMap.put(KeyStroke.getKeyStroke("ADD"), "suma");
+        inputMap.put(KeyStroke.getKeyStroke("SUBTRACT"), "resta");
+        inputMap.put(KeyStroke.getKeyStroke("MULTIPLY"), "multiplicacion");
+        inputMap.put(KeyStroke.getKeyStroke("DIVIDE"), "division");
+
+        actionMap.put("suma", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (modo.equals("Ambos") || modo.equals("Teclado")) {
+                    setOperacion("+");
+                }
+            }
+        });
+
+        actionMap.put("resta", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (modo.equals("Ambos") || modo.equals("Teclado")) {
+                    setOperacion("-");
+                }
+            }
+        });
+
+        actionMap.put("multiplicacion", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (modo.equals("Ambos") || modo.equals("Teclado")) {
+                    setOperacion("*");
+                }
+            }
+        });
+
+        actionMap.put("division", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (modo.equals("Ambos") || modo.equals("Teclado")) {
+                    setOperacion("/");
+                }
+            }
+        });
+
+        // Enter para calcular el resultado
+        inputMap.put(KeyStroke.getKeyStroke("ENTER"), "calcular");
+        actionMap.put("calcular", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (modo.equals("Ambos") || modo.equals("Teclado")) {
+                    calcularResultado();
+                }
+            }
+        });
+    }
+
+    private void cambiarModo() {
+        // Cambiar el modo de entrada
+        if (modo.equals("Ambos")) {
+            modo = "Ratón";
+        } else if (modo.equals("Ratón")) {
+            modo = "Teclado";
+        } else {
+            modo = "Ambos";
+        }
+        modoEntrada.setText("Modo: " + modo);
     }
 
     private void agregarBotonNumerico(JPanel panel, String texto) {
@@ -165,10 +251,6 @@ public class Calculadora extends JFrame {
         panel.add(boton);
     }
 
-    private void setModo(String modo) {
-        modoEntrada.setText("Modo: " + modo);
-    }
-
     private void ingresarNumero(String texto) {
         if (nuevoNumero) {
             pantallaActual.setText(texto.equals(",") ? "0," : texto);
@@ -176,51 +258,41 @@ public class Calculadora extends JFrame {
         } else {
             pantallaActual.setText(pantallaActual.getText() + texto);
         }
+        verificarNegativo();  // Verificamos si el número es negativo
     }
 
     private void setOperacion(String operacion) {
-        String actual = pantallaActual.getText();
-
-        // Si la pantalla actual termina en un operador, reemplazamos el último operador con el nuevo
-        if (actual.length() > 0 && "+-*/".contains(String.valueOf(actual.charAt(actual.length() - 1)))) {
-            pantallaActual.setText(actual.substring(0, actual.length() - 1) + operacion);
-        } else if (actual.length() > 0) {
-            if (operacionActual.isEmpty()) {
-                resultado = Double.parseDouble(actual.replace(",", "."));
-            }
+        try {
+            resultado = Double.parseDouble(pantallaActual.getText().replace(",", "."));
             operacionActual = operacion;
             pantallaAlmacenada.setText(pantallaActual.getText() + " " + operacion);
             nuevoNumero = true;
+            verificarNegativo();  // Verificamos si el número es negativo después de setear la operación
+        } catch (Exception e) {
+            pantallaActual.setText("Error");
         }
     }
 
     private void calcularResultado() {
         try {
             double valorActual = Double.parseDouble(pantallaActual.getText().replace(",", "."));
-            if (operacionActual.isEmpty()) {
-                return;  // Si no hay operación, no calculamos
-            }
             switch (operacionActual) {
-                case "+":
-                    resultado += valorActual;
-                    break;
-                case "-":
-                    resultado -= valorActual;
-                    break;
-                case "*":
-                    resultado *= valorActual;
-                    break;
-                case "/":
+                case "+" -> resultado += valorActual;
+                case "-" -> resultado -= valorActual;
+                case "*" -> resultado *= valorActual;
+                case "/" -> {
                     if (valorActual == 0) {
-                        throw new ArithmeticException("División por cero");
+                        pantallaActual.setText("Error");
+                        return;
                     }
                     resultado /= valorActual;
-                    break;
+                }
             }
             pantallaActual.setText(String.valueOf(resultado).replace(".", ","));
             pantallaAlmacenada.setText("");
             operacionActual = "";
             nuevoNumero = true;
+            verificarNegativo();  // Verificamos si el resultado final es negativo
         } catch (Exception ex) {
             pantallaActual.setText("Error");
         }
@@ -229,12 +301,25 @@ public class Calculadora extends JFrame {
     private void reiniciar() {
         pantallaActual.setText("0");
         pantallaAlmacenada.setText("");
-        resultado = 0;
         operacionActual = "";
+        resultado = 0;
         nuevoNumero = true;
     }
 
+    private void verificarNegativo() {
+        // Cambiar el color a rojo si el número es negativo
+        try {
+            if (Double.parseDouble(pantallaActual.getText().replace(",", ".")) < 0) {
+                pantallaActual.setForeground(Color.RED);
+            } else {
+                pantallaActual.setForeground(Color.WHITE);
+            }
+        } catch (NumberFormatException e) {
+            // Si no es un número válido (por ejemplo "Error"), no hacemos nada
+        }
+    }
+
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new Calculadora("David"));
+        new Calculadora("David Torres");
     }
 }
